@@ -12,7 +12,20 @@ const validLevels = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '1
 let inputFile = process.argv[2];
 console.log('inputFile:', inputFile);
 
-const json = csvToJson.fieldDelimiter(',').getJsonFromCsv(inputFile);
+const readFile = (fileInputName) => {
+    return fs.readFileSync(fileInputName).toString();
+};
+
+let inputData = readFile(inputFile)
+inputData = inputData.replace(/(".*),(.*")/g, '$1&$2');
+inputData = inputData.replace(/(".*),(.*")/g, '$1&$2');
+inputData = inputData.replace(/(".*),(.*")/g, '$1&$2');
+inputData = inputData.replace(/"/g, '');
+
+
+let cleanedFileName = `cleaned_${inputFile}`;
+fs.writeFileSync(cleanedFileName, inputData);
+const json = csvToJson.fieldDelimiter(',').getJsonFromCsv(cleanedFileName);
 
 function convertToLevel(_level) {
     if (_level.toUpperCase().indexOf('STAGE') !== -1) {
@@ -37,15 +50,15 @@ function convertToLevel(_level) {
 }
 
 function convertToGroup(_group) {
-    return _group.replace('X', '').replace('P', '2');
+    return _group.toUpperCase().replace('P', '2');
 }
 
 function convertToPreferredTime(_request) {
     if (_request.indexOf("AFTER") !== -1) {
         return "7";
-    } else if (_request.indexOf("1ST") !== -1) {
+    } else if (_request.indexOf("1ST") !== -1 || _request.indexOf("FIRST") !== -1 || _request.indexOf("EARLY") !== -1) {
         return "1";
-    } else if (_request.indexOf("2ND") !== -1) {
+    } else if (_request.indexOf("2ND") !== -1 || _request.indexOf("SECOND") !== -1) {
         return "2";
     } else if (_request.indexOf("MORNING") !== -1) {
         return "2";
@@ -77,7 +90,7 @@ let entries = json.map(dirtyEntry => {
         level: convertToLevel(dirtyEntry.LEVEL),
         age: placeUatEnd((dirtyEntry.AGE.match(/(\d|U|\+|-)/g) || [getMostLikelyAgeGroup(dirtyEntry)]).join('')),
         group: convertToGroup(dirtyEntry.GROUP),
-        routine: dirtyEntry['COMB/BAL/DYN'],
+        routine: dirtyEntry['COMB/BAL/DYN'] || dirtyEntry.ROUTINE,
         requests: dirtyEntry.Requests.trim(),
         preferredTime: convertToPreferredTime(dirtyEntry.Requests.trim().toUpperCase()),
         names: individualNames.join(' & '),
@@ -88,6 +101,7 @@ let entries = json.map(dirtyEntry => {
 
 
 function isEntryValid(entry) {
+    entry.level = entry.level || '';
     if (validLevels.includes(entry.level.toString())) {
         return true;
     } else if (entry.level.indexOf("STAGE ") === 0) {

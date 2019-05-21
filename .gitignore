@@ -23,6 +23,7 @@ yarn-error.log*
 .idea/
 *.iml
 input.csv
+cleaned_input.csv
 medal_count.json
 medals_output.csv
 output.csv
